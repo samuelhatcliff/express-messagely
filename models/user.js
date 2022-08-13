@@ -49,6 +49,9 @@ class User {
         RETURNING username
       `, [username]
     )
+    if (!result.rows[0]) {
+      throw new ExpressError(`No such user: ${username}`, 404);
+    }
     return result.rows[0]
   }
 
@@ -77,6 +80,9 @@ class User {
       `SELECT * FROM users WHERE username = $1
       `, [username]
     )
+    if (!result.rows[0]) {
+      throw new ExpressError(`No such user: ${username}`, 404);
+    }
     return result.rows[0]
   }
 
