@@ -1,3 +1,24 @@
+const Router = require("express").Router;
+const router = new Router();
+const { ensureLoggedIn } = require("../middleware/auth");
+const ExpressError = require("../expressError")
+const Message = require("../models/message");
+
+
+router.get("/:id", ensureLoggedIn, async function (req, res, next) {
+    try {
+        const username = req.user.username;
+        const message = await Message.get(req.params.id)
+        if (message.to_user.username === username ||
+            message.from_user.username === username) {
+            return res.json({ message: message })
+        }
+        throw new ExpressError("You don't have permission to read this message", 400)
+    }
+    catch (err) {
+        next(err);
+    }
+})
 /** GET /:id - get detail of message.
  *
  * => {message: {id,
@@ -19,6 +40,19 @@
  *
  **/
 
+router.post("/", ensureLoggedIn, async function (req, res, next) {
+    try {
+        const message = await Message.create({
+            from_username: req.user.username,
+            to_username: req.body.to_username,
+            body: req.body.body
+        })
+        return res.json({ message: message })
+    }
+    catch (err) {
+        next(err);
+    }
+})
 
 /** POST/:id/read - mark message as read:
  *
@@ -28,3 +62,21 @@
  *
  **/
 
+router.post("/id:", ensureLoggedIn, async function (req, res, next) {
+    try {
+        const message = await Message.get(req.params.id)
+        const username = req.user.username;
+        if (message.to_user === username) {
+            const message = await Message.markRead(req.params.id);
+            return res.json({ message })
+        }
+        else {
+            throw new ExpressError("Message cannot be set to read because it is not addressed to logged in user", 401)
+        }
+    }
+    catch (err) {
+        next(err);
+    }
+})
+
+module.exports = router;
